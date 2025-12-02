@@ -38,6 +38,7 @@ namespace FORWARD
 		const float focal_x, float focal_y,
 		const float tan_fovx, float tan_fovy,
 		int* radii,
+		float* true_radii,
 		float2* points_xy_image,
 		float* depths,
 		float* cov3Ds,
@@ -61,6 +62,9 @@ namespace FORWARD
 		uint32_t* n_contrib,
 		const float* bg_color,
 		float* out_color,
+		float* contributions,
+		int num_contributions,
+		float* is_contributing,
 		float* depths,
 		float* depth);
 }

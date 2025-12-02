@@ -72,6 +72,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.tanfovy,
             raster_settings.image_height,
             raster_settings.image_width,
+            raster_settings.num_contributions,
             sh,
             raster_settings.sh_degree,
             raster_settings.campos,
@@ -81,17 +82,16 @@ class _RasterizeGaussians(torch.autograd.Function):
         )
 
         # Invoke C++/CUDA rasterizer
-        num_rendered, color, radii, geomBuffer, binningBuffer, imgBuffer, invdepths = _C.rasterize_gaussians(*args)
+        num_rendered, color, radii, true_radii, geomBuffer, binningBuffer, imgBuffer, invdepths, is_contributing, contributions = _C.rasterize_gaussians(*args)
 
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
         ctx.num_rendered = num_rendered
         ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, opacities, geomBuffer, binningBuffer, imgBuffer)
-        return color, radii, invdepths
+        return color, radii, true_radii, invdepths, is_contributing, contributions
 
     @staticmethod
-    def backward(ctx, grad_out_color, _, grad_out_depth):
-
+    def backward(ctx, grad_out_color, _, true_radii, grad_out_depth, __, ___):
         # Restore necessary values from context
         num_rendered = ctx.num_rendered
         raster_settings = ctx.raster_settings
@@ -154,6 +154,7 @@ class GaussianRasterizationSettings(NamedTuple):
     prefiltered : bool
     debug : bool
     antialiasing : bool
+    num_contributions : int
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):

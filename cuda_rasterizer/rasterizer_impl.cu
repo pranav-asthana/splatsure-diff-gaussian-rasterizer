@@ -216,9 +216,13 @@ int CudaRasterizer::Rasterizer::forward(
 	const float tan_fovx, float tan_fovy,
 	const bool prefiltered,
 	float* out_color,
+	float* contributions,
+	int num_contributions,
+	float* is_contributing,
 	float* depth,
 	bool antialiasing,
 	int* radii,
+	float* true_radii,
 	bool debug)
 {
 	const float focal_y = height / (2.0f * tan_fovy);
@@ -264,6 +268,7 @@ int CudaRasterizer::Rasterizer::forward(
 		focal_x, focal_y,
 		tan_fovx, tan_fovy,
 		radii,
+		true_radii,
 		geomState.means2D,
 		geomState.depths,
 		geomState.cov3D,
@@ -334,6 +339,9 @@ int CudaRasterizer::Rasterizer::forward(
 		imgState.n_contrib,
 		background,
 		out_color,
+		contributions,
+		num_contributions,
+		is_contributing,
 		geomState.depths,
 		depth), debug)
 

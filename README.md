@@ -1,19 +1,16 @@
 # Differential Gaussian Rasterization
 
-Used as the rasterization engine for the paper "3D Gaussian Splatting for Real-Time Rendering of Radiance Fields". If you can make use of it in your own research, please be so kind to cite us.
+Used as the rasterization engine for the paper "SplatSuRe: Selective Super-Resolution for Multi-view Consistent 3D Gaussian Splatting". This code has been derived from "3D Gaussian Splatting for Real-Time Rendering of Radiance Fields". If you can make use of it in your own research, please be so kind to cite us and the orignal [3DGS rasterizer reopository](https://github.com/graphdeco-inria/diff-gaussian-rasterization).
 
 <section class="section" id="BibTeX">
   <div class="container is-max-desktop content">
     <h2 class="title">BibTeX</h2>
-    <pre><code>@Article{kerbl3Dgaussians,
-      author       = {Kerbl, Bernhard and Kopanas, Georgios and Leimk{\"u}hler, Thomas and Drettakis, George},
-      title        = {3D Gaussian Splatting for Real-Time Radiance Field Rendering},
-      journal      = {ACM Transactions on Graphics},
-      number       = {4},
-      volume       = {42},
-      month        = {July},
-      year         = {2023},
-      url          = {https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/}
+    <pre><code>@article{Asthana2025SplatSuRe,
+    author    = {Asthana, Pranav and Hanson, Alex and Tu, Allen and Goldstein, Tom and Zwicker, Matthias and Varshney, Amitabh},
+    title     = {SplatSuRe: Selective Super-Resolution for Multi-view Consistent 3D Gaussian Splatting},
+    journal   = {Preprint},
+    year      = {2025},
+    url       = {https://splatsure.github.io/}
 }</code></pre>
   </div>
 </section>

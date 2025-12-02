@@ -166,6 +166,7 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	const float tan_fovx, float tan_fovy,
 	const float focal_x, float focal_y,
 	int* radii,
+	float* true_radii,
 	float2* points_xy_image,
 	float* depths,
 	float* cov3Ds,
@@ -214,6 +215,13 @@ __global__ void preprocessCUDA(int P, int D, int M,
 
 	constexpr float h_var = 0.3f;
 	const float det_cov = cov.x * cov.z - cov.y * cov.y;
+
+	// Sub-pixel true radius
+	float true_mid = 0.5f * (cov.x + cov.z);
+	float true_lambda1 = true_mid + sqrt(max(0.1f, true_mid * true_mid - det_cov));
+	float true_lambda2 = true_mid - sqrt(max(0.1f, true_mid * true_mid - det_cov));
+	float true_radius = 3.f * sqrt(max(true_lambda1, true_lambda2));
+
 	cov.x += h_var;
 	cov.z += h_var;
 	const float det_cov_plus_h_cov = cov.x * cov.z - cov.y * cov.y;
@@ -257,6 +265,7 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	// Store some useful helper data for the next steps.
 	depths[idx] = p_view.z;
 	radii[idx] = my_radius;
+	true_radii[idx] = true_radius;
 	points_xy_image[idx] = point_image;
 	// Inverse 2D covariance and opacity neatly pack into one float4
 	float opacity = opacities[idx];
@@ -284,6 +293,9 @@ renderCUDA(
 	uint32_t* __restrict__ n_contrib,
 	const float* __restrict__ bg_color,
 	float* __restrict__ out_color,
+	float* __restrict__ contributions,
+	int num_contributions,
+	float* is_contributing,
 	const float* __restrict__ depths,
 	float* __restrict__ invdepth)
 {
@@ -367,9 +379,28 @@ renderCUDA(
 				continue;
 			}
 
+			// Mark this Gaussian as contributing to the rendering of 1 more pixel
+			is_contributing[collected_id[j]] += 1.0f;
+
 			// Eq. (3) from 3D Gaussian splatting paper.
 			for (int ch = 0; ch < CHANNELS; ch++)
 				C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
+
+			if (T*alpha > contributions[0*num_contributions*H*W + (num_contributions-1)*H*W + pix_id]) { // Check if current contribution is larger than the smallest one stored
+				for(int max_index=0; max_index<num_contributions; max_index++){
+					if (T*alpha > contributions[0*num_contributions*H*W + max_index*H*W + pix_id]) {
+						// Shift everything down by 1, and then replace the current one
+						for (int mpo = num_contributions-1; mpo > max_index; mpo--) {
+							contributions[0*num_contributions*H*W + mpo*H*W + pix_id] = contributions[0*num_contributions*H*W + (mpo - 1)*H*W + pix_id];
+							contributions[1*num_contributions*H*W + mpo*H*W + pix_id] = contributions[1*num_contributions*H*W + (mpo - 1)*H*W + pix_id];
+						}
+						contributions[0*num_contributions*H*W + max_index*H*W + pix_id] = T*alpha;
+						contributions[1*num_contributions*H*W + max_index*H*W + pix_id] = collected_id[j];
+						break;
+					}
+					// else do nothing and continue
+				}
+			}
 
 			if(invdepth)
 			expected_invdepth += (1 / depths[collected_id[j]]) * alpha * T;
@@ -408,6 +439,9 @@ void FORWARD::render(
 	uint32_t* n_contrib,
 	const float* bg_color,
 	float* out_color,
+	float* contributions,
+	int num_contributions,
+	float* is_contributing,
 	float* depths,
 	float* depth)
 {
@@ -422,6 +456,9 @@ void FORWARD::render(
 		n_contrib,
 		bg_color,
 		out_color,
+		contributions,
+		num_contributions,
+		is_contributing,
 		depths, 
 		depth);
 }
@@ -443,6 +480,7 @@ void FORWARD::preprocess(int P, int D, int M,
 	const float focal_x, float focal_y,
 	const float tan_fovx, float tan_fovy,
 	int* radii,
+	float* true_radii,
 	float2* means2D,
 	float* depths,
 	float* cov3Ds,
@@ -471,6 +509,7 @@ void FORWARD::preprocess(int P, int D, int M,
 		tan_fovx, tan_fovy,
 		focal_x, focal_y,
 		radii,
+		true_radii,
 		means2D,
 		depths,
 		cov3Ds,
